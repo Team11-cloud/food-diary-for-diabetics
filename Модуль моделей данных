@@ -1,0 +1,27 @@
+# models.py
+import datetime
+from typing import List, Dict, Optional
+
+class FoodEntry:
+    """Класс для представления записи о приеме пищи"""
+    def init(self, food_name: str, carbohydrates: float, 
+                 protein: float, fat: float, calories: int,
+                 timestamp: datetime.datetime = None):
+        self.food_name = food_name
+        self.carbohydrates = carbohydrates
+        self.protein = protein
+        self.fat = fat
+        self.calories = calories
+        self.timestamp = timestamp or datetime.datetime.now()
+        
+    def calculate_insulin_dose(self, insulin_carb_ratio: float) -> float:
+        """Рассчет дозы инсулина на основе углеводов"""
+        return self.carbohydrates / insulin_carb_ratio
+
+class BloodSugar:
+    """Класс для представления измерения сахара в крови"""
+    def init(self, value: float, timestamp: datetime.datetime = None,
+                 measurement_type: str = "до еды"):
+        self.value = value
+        self.timestamp = timestamp or datetime.datetime.now()
+        self.measurement_type = measurement_type
