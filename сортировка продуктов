@@ -1,0 +1,103 @@
+# food_sorter.py
+from typing import Dict, List, Optional
+from constants import food_db
+
+class FoodSorter:
+
+    
+    @staticmethod
+    def sort_foods_by_nutrient(foods: Dict, nutrient: str, 
+                             ascending: bool = True) -> List[tuple]:
+        """
+        Сортировка продуктов по содержанию питательного вещества
+        
+        Args:
+            foods: Словарь с продуктами
+            nutrient: Питательное вещество ('calories', 'protein', 'fat', 'carbs')
+            ascending: По возрастанию (True) или убыванию (False)
+        
+        Returns:
+            Отсортированный список кортежей (название продукта, данные)
+        """
+        sorted_foods = sorted(
+            foods.items(),
+            key=lambda x: x[1].get(nutrient, 0),
+            reverse=not ascending
+        )
+        return sorted_foods
+    
+    @staticmethod
+    def filter_foods_by_macronutrient(foods: Dict, min_protein: float = 0,
+                                    min_carbs: float = 0, min_fat: float = 0,
+                                    max_calories: Optional[float] = None) -> Dict:
+        """
+        Фильтрация продуктов по макронутриентам
+        
+        Args:
+            foods: Словарь с продуктами
+            min_protein: Минимальное содержание белка
+            min_carbs: Минимальное содержание углеводов
+            min_fat: Минимальное содержание жиров
+            max_calories: Максимальная калорийность
+        
+        Returns:
+            Отфильтрованный словарь продуктов
+        """
+        filtered_foods = {}
+        
+        for name, data in foods.items():
+            if (data.get('protein', 0) >= min_protein and
+                data.get('carbs', 0) >= min_carbs and
+                data.get('fat', 0) >= min_fat):
+                
+                if max_calories is None or data.get('calories', 0) <= max_calories:
+                    filtered_foods[name] = data
+        
+        return filtered_foods
+    
+    @staticmethod
+    def search_foods(foods: Dict, query: str) -> Dict:
+        """
+        Поиск продуктов по названию
+        
+        Args:
+            foods: Словарь с продуктами
+            query: Поисковый запрос
+        
+        Returns:
+            Словарь найденных продуктов
+        """
+        query = query.lower()
+        found_foods = {}
+        
+        for name, data in foods.items():
+            if query in name.lower():
+                found_foods[name] = data
+        
+        return found_foods
+    
+    @staticmethod
+    def get_food_categories() -> Dict[str, List[str]]:
+        """Получение продуктов по категориям"""
+        categories = {
+            "Мясо и птица": ["куриная грудка", "говядина", "свинина"],
+            "Рыба": ["рыба"],
+            "Молочные продукты": ["творог", "молоко", "йогурт", "сыр"],
+            "Крупы и злаки": ["рис", "гречка", "овсянка", "макароны", "хлеб"],
+            "Овощи": ["морковь", "помидор", "огурец", "картофель"],
+            "Фрукты": ["банан", "яблоко"],
+            "Яйца": ["яйцо"]
+        }
+        return categories
+    
+    def get_foods_by_category(self, category: str) -> Dict:
+        """Получение продуктов определенной категории"""
+        categories = self.get_food_categories()
+        category_foods = {}
+        
+        if category in categories:
+            for food_name in categories[category]:
+                if food_name in food_db:
+                    category_foods[food_name] = food_db[food_name]
+        
+        return category_foods
