@@ -5,7 +5,7 @@ from typing import Dict, Optional
 class CustomFoodManager:
     """Класс для управления пользовательскими продуктами"""
     
-    def init(self, db_path: str = "diabetes_diary.db"):
+    def init(self, db_path: str = "diabetes_diary.db"):          __init__
         self.db_path = db_path
         self._init_custom_foods_table()
     
