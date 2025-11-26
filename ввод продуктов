@@ -1,4 +1,5 @@
-
+Если ввести несуществующий продукт, программа ляже, пофиксите это. Я вам уже уговорил.
+Сделайте 
 food_db = {
         "куриная грудка": {"calories": 165, "protein": 31, "fat": 3.6, "carbs": 0},
     "рис": {"calories": 130, "protein": 2.7, "fat": 0.3, "carbs": 28},
@@ -32,7 +33,7 @@ def calculate_kbju():
             break
 
         try:
-            weight = float(input("Вес в граммах: "))
+            weight = float(input("Вес в граммах: "))       Сделайте обработку весу, он больше 0
         except ValueError:
             print("❌ Ошибка: введите число")
             continue
@@ -47,5 +48,5 @@ def calculate_kbju():
         print(f"🍚 Углеводы: {nutrition['carbs'] * coef:.1f} г")
 
 # Запуск упрощенной версии
-if name == "main":
+if name == "main":                   Исправлено: if __name__ == "__main__":
 calculate_kbju()
