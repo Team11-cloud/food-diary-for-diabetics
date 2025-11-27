@@ -1,0 +1,150 @@
+# main_diary.py
+import sqlite3
+import datetime
+from typing import List, Dict, Optional
+from models import FoodEntry, BloodSugar
+from custom_foods import CustomFoodManager
+from constants import food_db
+
+
+class FoodAdditionManager:
+    """Класс для управления добавлением новых продуктов в базу данных"""
+    
+    def __init__(self, custom_food_manager: CustomFoodManager):
+        self.custom_food_manager = custom_food_manager
+    
+    def prompt_add_food(self, food_name: str) -> Optional[Dict]:
+        """Предложить пользователю добавить новый продукт в базу данных"""
+        print(f"\nПродукт '{food_name}' не найден в базе данных.")
+        response = input("Хотите добавить этот продукт в базу данных? (да/нет): ").lower().strip()
+        
+        if response in ['да', 'д', 'yes', 'y']:
+            return self._collect_food_data(food_name)
+        else:
+            print("Продукт не добавлен.")
+            return None
+    
+    def _collect_food_data(self, food_name: str) -> Optional[Dict]:
+        """Собрать данные о пищевой ценности продукта от пользователя"""
+        print(f"\nДобавление нового продукта: {food_name}")
+        print("Введите пищевую ценность на 100 грамм:")
+        
+        try:
+            calories = self._get_positive_float("Калории (ккал): ")
+            protein = self._get_positive_float("Белки (г): ")
+            fat = self._get_positive_float("Жиры (г): ")
+            carbohydrates = self._get_positive_float("Углеводы (г): ")
+            
+            # Создаем словарь с данными о продукте
+            food_data = {
+                'calories': calories,
+                'protein': protein,
+                'fat': fat,
+                'carbohydrates': carbohydrates
+            }
+            
+            # Добавляем в пользовательскую базу
+            success = self.custom_food_manager.add_custom_food(food_name, food_data)
+            
+            if success:
+                print(f"✅ Продукт '{food_name}' успешно добавлен в базу данных!")
+                return food_data
+            else:
+                print("❌ Ошибка при добавлении продукта в базу данных.")
+                return None
+                
+        except (ValueError, KeyboardInterrupt) as e:
+            print(f"❌ Ошибка ввода: {e}")
+            return None
+    
+    def _get_positive_float(self, prompt: str) -> float:
+        """Получить положительное числовое значение от пользователя"""
+        while True:
+            try:
+                value_str = input(prompt).replace(',', '.').strip()
+                value = float(value_str)
+                if value < 0:
+                    print("❌ Значение не может быть отрицательным. Попробуйте снова.")
+                    continue
+                return value
+            except ValueError:
+                print("❌ Пожалуйста, введите числовое значение (например: 12.5)")
+
+
+class DiabetesDiary:
+    """Основной класс дневника питания для диабетиков"""
+    
+    def __init__(self, db_path: str = "diabetes_diary.db"):
+        self.db_path = db_path
+        self.custom_food_manager = CustomFoodManager(db_path)
+        self.food_addition_manager = FoodAdditionManager(self.custom_food_manager)
+        self._init_database()
+    
+    def _init_database(self):
+        """Инициализация базы данных"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Таблица записей о питании
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS food_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                food_name TEXT NOT NULL,
+                carbohydrates REAL NOT NULL,
+                protein REAL NOT NULL,
+                fat REAL NOT NULL,
+                calories INTEGER NOT NULL,
+                timestamp DATETIME NOT NULL
+            )
+        ''')
+        
+        # Таблица измерений сахара
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS blood_sugar_measurements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                value REAL NOT NULL,
+                timestamp DATETIME NOT NULL,
+                measurement_type TEXT NOT NULL
+            )
+        ''')
+        
+        # Таблица профилей пользователей
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                insulin_carb_ratio REAL DEFAULT 10.0,
+                target_sugar_min REAL DEFAULT 4.0,
+                target_sugar_max REAL DEFAULT 7.0,
+                created_date DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+    
+    def get_food_info(self, food_name: str) -> Optional[Dict]:
+        """Получение информации о продукте из всех источников"""
+        food_name = food_name.lower()
+        
+        # Проверяем в основной базе
+        if food_name in food_db:
+            return food_db[food_name]
+        
+        # Проверяем в пользовательской базе
+        custom_food = self.custom_food_manager.get_custom_food_info(food_name)
+        if custom_food:
+            return custom_food
+        
+        # Если продукт не найден, предлагаем добавить его
+        return self.food_addition_manager.prompt_add_food(food_name)
+    
+    def get_combined_food_database(self) -> Dict:
+        """Получение объединенной базы данных продуктов"""
+        combined_db = food_db.copy()
+        custom_foods = self.custom_food_manager.get_all_custom_foods()
+        combined_db.update(custom_foods)
+        return combined_db
+
+    # Остальные методы класса DiabetesDiary (add_food_entry, add_blood_sugar, 
+    # get_food_entries_by_date, get_blood_sugar_by_date, get_blood_sugar_last_7_days,
+    # get_daily_summary, _calculate_average_sugar, set_insulin_carb_ratio)
