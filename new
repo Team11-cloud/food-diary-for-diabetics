@@ -1,2 +1,5 @@
 mkdir diabetic_food_diary
 cd diabetic_food_diary
+python -m venv venv
+source venv/bin/activate  # На Windows: venv\Scripts\activate
+pip install -r requirements.txt
