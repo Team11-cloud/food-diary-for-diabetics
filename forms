@@ -1,0 +1,71 @@
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField, FloatField, TextAreaField, SelectField, DateField, TimeField
+from wtforms.validators import DataRequired, Email, Length, Optional, ValidationError
+from wtforms.fields import TelField
+import re
+
+class RegistrationForm(FlaskForm):
+    email = StringField('Email', validators=[Optional(), Email()])
+    phone = TelField('Номер телефона', validators=[Optional()])
+    name = StringField('Имя', validators=[DataRequired()])
+    password = PasswordField('Пароль', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Подтвердите пароль', validators=[DataRequired()])
+    diabetes_type = SelectField('Тип диабета', choices=[('1', '1 тип'), ('2', '2 тип')], validators=[DataRequired()])
+    submit = SubmitField('Зарегистрироваться')
+    
+    def validate(self, extra_validators=None):
+        if not super().validate():
+            return False
+        
+        if not self.email.data and not self.phone.data:
+            self.email.errors.append('Укажите email или номер телефона')
+            return False
+        
+        if self.password.data != self.confirm_password.data:
+            self.confirm_password.errors.append('Пароли не совпадают')
+            return False
+        
+        return True
+
+class LoginForm(FlaskForm):
+    email_or_phone = StringField('Email или телефон', validators=[DataRequired()])
+    password = PasswordField('Пароль', validators=[DataRequired()])
+    submit = SubmitField('Войти')
+
+class ProductForm(FlaskForm):
+    name = StringField('Название продукта', validators=[DataRequired()])
+    calories = FloatField('Калории (ккал на 100г)', validators=[DataRequired()])
+    proteins = FloatField('Белки (г на 100г)', validators=[DataRequired()])
+    fats = FloatField('Жиры (г на 100г)', validators=[DataRequired()])
+    carbs = FloatField('Углеводы (г на 100г)', validators=[DataRequired()])
+    sugar = FloatField('Сахар (г на 100г)', validators=[DataRequired()])
+    fiber = FloatField('Клетчатка (г на 100г)', default=0)
+    submit = SubmitField('Добавить продукт')
+
+class MealForm(FlaskForm):
+    meal_type = SelectField('Прием пищи', choices=[
+        ('breakfast', 'Завтрак'),
+        ('lunch', 'Обед'),
+        ('dinner', 'Ужин'),
+        ('snack', 'Перекус')
+    ], validators=[DataRequired()])
+    date = DateField('Дата', validators=[DataRequired()])
+    time = TimeField('Время', validators=[DataRequired()])
+    notes = TextAreaField('Заметки')
+    submit = SubmitField('Сохранить')
+
+class FoodEntryForm(FlaskForm):
+    product_name = StringField('Название продукта', validators=[DataRequired()])
+    weight = FloatField('Вес (г)', validators=[DataRequired()])
+    submit = SubmitField('Добавить')
+
+class GlucoseForm(FlaskForm):
+    value = FloatField('Уровень глюкозы (ммоль/л)', validators=[DataRequired()])
+    measurement_type = SelectField('Тип измерения', choices=[
+        ('fasting', 'Натощак'),
+        ('after_meal', 'После еды'),
+        ('before_bed', 'Перед сном'),
+        ('other', 'Другое')
+    ], validators=[DataRequired()])
+    notes = TextAreaField('Заметки')
+    submit = SubmitField('Сохранить')
