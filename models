@@ -1,0 +1,100 @@
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+
+db = SQLAlchemy()
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=True)
+    phone = db.Column(db.String(20), unique=True, nullable=True)
+    password_hash = db.Column(db.String(256))
+    name = db.Column(db.String(100))
+    diabetes_type = db.Column(db.Integer)  # 1 или 2 тип
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Связи
+    meals = db.relationship('Meal', backref='user', lazy=True)
+    glucose_records = db.relationship('GlucoseRecord', backref='user', lazy=True)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+class Product(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    calories = db.Column(db.Float)  # ккал на 100г
+    proteins = db.Column(db.Float)  # белки на 100г
+    fats = db.Column(db.Float)      # жиры на 100г
+    carbs = db.Column(db.Float)     # углеводы на 100г
+    sugar = db.Column(db.Float)     # сахар на 100г
+    fiber = db.Column(db.Float)     # клетчатка на 100г
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    is_verified = db.Column(db.Boolean, default=False)  # проверенные продукты
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Связи
+    meal_items = db.relationship('MealItem', backref='product', lazy=True)
+
+class Meal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    meal_type = db.Column(db.String(50))  # завтрак, обед, ужин, перекус
+    date = db.Column(db.Date, default=datetime.utcnow().date)
+    time = db.Column(db.Time, default=datetime.utcnow().time)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Связи
+    items = db.relationship('MealItem', backref='meal', lazy=True, cascade='all, delete-orphan')
+    
+    @property
+    def total_calories(self):
+        return sum(item.calories for item in self.items)
+    
+    @property
+    def total_carbs(self):
+        return sum(item.carbs for item in self.items)
+    
+    @property
+    def total_xe(self):
+        # 1 ХЕ = 12г углеводов
+        return round(sum(item.carbs for item in self.items) / 12, 2)
+
+class MealItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    meal_id = db.Column(db.Integer, db.ForeignKey('meal.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    weight = db.Column(db.Float)  # в граммах
+    
+    @property
+    def calories(self):
+        return (self.product.calories * self.weight) / 100 if self.product.calories else 0
+    
+    @property
+    def proteins(self):
+        return (self.product.proteins * self.weight) / 100 if self.product.proteins else 0
+    
+    @property
+    def fats(self):
+        return (self.product.fats * self.weight) / 100 if self.product.fats else 0
+    
+    @property
+    def carbs(self):
+        return (self.product.carbs * self.weight) / 100 if self.product.carbs else 0
+    
+    @property
+    def sugar(self):
+        return (self.product.sugar * self.weight) / 100 if self.product.sugar else 0
+
+class GlucoseRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    value = db.Column(db.Float)  # уровень глюкозы в ммоль/л
+    measurement_type = db.Column(db.String(50))  # натощак, после еды, перед сном
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
